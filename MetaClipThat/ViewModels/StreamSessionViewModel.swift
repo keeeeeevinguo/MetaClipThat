@@ -12,8 +12,10 @@
 // Core view model demonstrating video streaming from Meta wearable devices using the DAT SDK.
 // This class showcases the key streaming patterns: device selection, session management,
 // video frame handling, photo capture, and error handling.
+// Modified to also handle adding video frames to a circular buffer and video recording
 //
 
+import AVFoundation
 import MWDATCamera
 import MWDATCore
 import SwiftUI
@@ -22,6 +24,12 @@ enum StreamingStatus {
   case streaming
   case waiting
   case stopped
+}
+
+enum RecordingState {
+  case idle
+  case recording
+  case saving
 }
 
 @MainActor
@@ -37,15 +45,17 @@ class StreamSessionViewModel: ObservableObject {
     streamingStatus != .stopped
   }
 
-  // Timer properties
-  @Published var activeTimeLimit: StreamTimeLimit = .noLimit
-  @Published var remainingTime: TimeInterval = 0
-
   // Photo capture properties
   @Published var capturedPhoto: UIImage?
   @Published var showPhotoPreview: Bool = false
 
+  // Recording properties
+  @Published var recordingState: RecordingState = .idle
+  @Published var recordingDuration: TimeInterval = 0
+
   private var timerTask: Task<Void, Never>?
+  private var recordingTimer: Task<Void, Never>?
+  private var videoEncoder: VideoEncoderService?
   // The core DAT SDK StreamSession - handles all streaming operations
   private var streamSession: StreamSession
   // Listener tokens are used to manage DAT SDK event subscriptions
@@ -56,6 +66,7 @@ class StreamSessionViewModel: ObservableObject {
   private let wearables: WearablesInterface
   private let deviceSelector: AutoDeviceSelector
   private var deviceMonitorTask: Task<Void, Never>?
+  private let replayBuffer = ReplayBufferManager(capacity: 720)
 
   init(wearables: WearablesInterface) {
     self.wearables = wearables
@@ -84,6 +95,7 @@ class StreamSessionViewModel: ObservableObject {
 
     // Subscribe to video frames from the device camera
     // Each VideoFrame contains the raw camera data that we convert to UIImage
+    // Add each video frame to our circular buffer or live recording if appropriate
     videoFrameListenerToken = streamSession.videoFramePublisher.listen { [weak self] videoFrame in
       Task { @MainActor [weak self] in
         guard let self else { return }
@@ -92,6 +104,18 @@ class StreamSessionViewModel: ObservableObject {
           self.currentVideoFrame = image
           if !self.hasReceivedFirstFrame {
             self.hasReceivedFirstFrame = true
+          }
+
+          Task.detached { [weak self, image] in
+            guard let self else { return }
+            if let jpegData = image.jpegData(compressionQuality: 0.8) {
+              let timestamp = CMTime(seconds: Date().timeIntervalSince1970, preferredTimescale: 600)
+              await self.replayBuffer.addFrame(jpegData: jpegData, timestamp: timestamp)
+
+              if await self.recordingState == .recording, let encoder = await self.videoEncoder {
+                try? await encoder.appendLiveFrame(jpegData: jpegData, timestamp: timestamp)
+              }
+            }
           }
         }
       }
@@ -144,11 +168,6 @@ class StreamSessionViewModel: ObservableObject {
   }
 
   func startSession() async {
-    // Reset to unlimited time when starting a new stream
-    activeTimeLimit = .noLimit
-    remainingTime = 0
-    stopTimer()
-
     await streamSession.start()
   }
 
@@ -158,24 +177,13 @@ class StreamSessionViewModel: ObservableObject {
   }
 
   func stopSession() async {
-    stopTimer()
     await streamSession.stop()
+    await replayBuffer.clear()
   }
 
   func dismissError() {
     showError = false
     errorMessage = ""
-  }
-
-  func setTimeLimit(_ limit: StreamTimeLimit) {
-    activeTimeLimit = limit
-    remainingTime = limit.durationInSeconds ?? 0
-
-    if limit.isTimeLimited {
-      startTimer()
-    } else {
-      stopTimer()
-    }
   }
 
   func capturePhoto() {
@@ -187,23 +195,90 @@ class StreamSessionViewModel: ObservableObject {
     capturedPhoto = nil
   }
 
-  private func startTimer() {
-    stopTimer()
-    timerTask = Task { @MainActor [weak self] in
-      while let self, remainingTime > 0 {
+  // Start a recording with the buffered frames
+  func startRecording() async {
+    guard recordingState == .idle else {
+      showError("Recording in progress")
+      return
+    }
+
+    let status = await PhotoLibrarySaver.requestPermission()
+    guard status == .authorized else {
+      showError("Photo Library permission required")
+      return
+    }
+
+    let bufferedFrames = await replayBuffer.getAllFrames()
+    guard !bufferedFrames.isEmpty else {
+      showError("No frames in buffer")
+      return
+    }
+
+    do {
+      let encoder = VideoEncoderService()
+      try await encoder.startRecording(withBufferedFrames: bufferedFrames)
+      self.videoEncoder = encoder
+
+      recordingState = .recording
+      recordingDuration = 0
+
+      startRecordingTimer()
+
+    } catch {
+      showError("Failed to start recording: \(error.localizedDescription)")
+      videoEncoder = nil
+      recordingState = .idle
+    }
+  }
+
+  func stopRecording() async {
+    guard recordingState == .recording else {
+      return
+    }
+
+    stopRecordingTimer()
+
+    recordingState = .saving
+
+    guard let encoder = videoEncoder else {
+      showError("Video encoder not initialized")
+      recordingState = .idle
+      return
+    }
+
+    do {
+      let videoURL = try await encoder.endRecording()
+
+      try await PhotoLibrarySaver.saveVideoAndCleanup(at: videoURL)
+
+      videoEncoder = nil
+      recordingState = .idle
+      recordingDuration = 0
+
+    } catch {
+      showError("Failed to save video: \(error.localizedDescription)")
+      videoEncoder = nil
+      recordingState = .idle
+      recordingDuration = 0
+    }
+  }
+
+  // Start recording timer without buffer time
+  private func startRecordingTimer() {
+    stopRecordingTimer()
+    recordingTimer = Task { @MainActor [weak self] in
+      while let self, recordingState == .recording {
         try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
         guard !Task.isCancelled else { break }
-        remainingTime -= 1
-      }
-      if let self, !Task.isCancelled {
-        await stopSession()
+        recordingDuration += 1
       }
     }
   }
 
-  private func stopTimer() {
-    timerTask?.cancel()
-    timerTask = nil
+  // Stop recording timer
+  private func stopRecordingTimer() {
+    recordingTimer?.cancel()
+    recordingTimer = nil
   }
 
   private func updateStatusFromState(_ state: StreamSessionState) {

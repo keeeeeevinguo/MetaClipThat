@@ -9,8 +9,8 @@
 //
 // HomeScreenView.swift
 //
-// Welcome screen that guides users through the DAT SDK registration process.
-// This view is displayed when the app is not yet registered.
+// Welcome screen for MetaClipThat - instant replay recording from Meta glasses.
+// Explains the 30-second replay buffer feature and guides users through setup.
 //
 
 import MWDATCore
@@ -26,26 +26,31 @@ struct HomeScreenView: View {
       VStack(spacing: 12) {
         Spacer()
 
-        Image(.cameraAccessIcon)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-          .frame(width: 120)
+        Text("MetaClipThat")
+          .font(.system(size: 32, weight: .bold))
+          .foregroundColor(.black)
+          .padding(.bottom, 8)
 
-        VStack(spacing: 12) {
+        Text("Never miss a moment")
+          .font(.system(size: 18, weight: .medium))
+          .foregroundColor(.gray)
+          .padding(.bottom, 24)
+
+        VStack(spacing: 16) {
           HomeTipItemView(
-            resource: .smartGlassesIcon,
-            title: "Video Capture",
-            text: "Record videos directly from your glasses, from your point of view."
+            resource: .replay,
+            title: "30-Second Replay Buffer",
+            text: "Your glasses will save the last 30 seconds when you start recording."
           )
           HomeTipItemView(
-            resource: .soundIcon,
-            title: "Open-Ear Audio",
-            text: "Hear notifications while keeping your ears open to the world around you."
+            resource: .clipthaticon,
+            title: "Clip That Moment",
+            text: "Capture amazing moments after they happen."
           )
           HomeTipItemView(
-            resource: .walkingIcon,
-            title: "Enjoy On-the-Go",
-            text: "Stay hands-free while you move through your day. Move freely, stay connected."
+            resource: .saveicon,
+            title: "Save to Photos",
+            text: "Videos automatically save to your Photos."
           )
         }
 

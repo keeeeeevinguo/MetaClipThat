@@ -1,49 +1,62 @@
-# Camera Access App
+# MetaClipThat
 
-A sample iOS application demonstrating integration with Meta Wearables Device Access Toolkit. This app showcases streaming video from Meta AI glasses, capturing photos, and managing connection states.
+![alt text](
+
+## Description
+
+This is an iOS app for the Meta Raybans that continuously captures the last 30 seconds of video. When you tap record, it saves the past 30 seconds plus everything you record going forward into a single video file, so you never miss a moment.
 
 ## Features
+- Continuously stores the last 720 frames (30 seconds at 24fps)
+- Real-time camera feed from Meta Rayban glasses
+- Videos automatically save to Photos library after recording ends
 
-- Connect to Meta AI glasses
-- Stream camera feed from the device
-- Capture photos from glasses
-- Timer-based streaming sessions
-- Share captured photos
+### Demo
+- [Link](https://youtu.be/Ejx-veqgZKI)
 
-## Prerequisites
+### High-Level Implementation
+1. Meta Raybans continuously streams video frames to app
+2. App stores 30 seconds (720 frames at 24fps) worth of frames in memory on a rolling basis
+3. When user starts recording, the app retrievers all frames from the past 30 seconds, begins recording new frames, and encodes everything into a single MP4 video
+4. When the recording stops, the video is automatically saved to your Photos library
 
-- iOS 17.0+
-- Xcode 14.0+
-- Swift 5.0+
-- Meta Wearables Device Access Toolkit (included as a dependency)
-- A Meta AI glasses device for testing (optional for development)
+## Getting Started
+### Dependencies/Requirements
+* Xcode 26.2
+* Swift 6
+* Meta Wearables Device Access Toolkit v0.3.0
 
-## Building the app
+### Setup
+* Enable developer mode on iPhone
+* Enable developer mode on Meta Raybans
 
-### Using Xcode
+### Running the app
 
-1. Clone this repository
-1. Open the project in Xcode
-1. Select your target device
-1. Click the "Build" button or press `Cmd+B` to build the project
-1. To run the app, click the "Run" button (▶️) or press `Cmd+R`
+1. Clone this repo
+2. Open project in Xcode
+3. Select target device (must be physical device, not a simulator)
+4. Build/Run project
 
-## Running the app
+### Quick Start
+ 
+1. Launch app
+2. Follow prompts to connect glasses and authorize permissions
+3. Tap `Start capturing every moment` button to begin video stream
+4. Press record button to start recording
+5. Press again to stop recording and save to Photos
 
-1. Turn 'Developer Mode' on in the Meta AI app.
-1. Launch the app.
-1. Press the "Connect" button to complete app registration.
-1. Once connected, the camera stream from the device will be displayed
-1. Use the on-screen controls to:
-   - Set stream time limits
-   - Capture photos
-   - View and save captured photos
-   - Disconnect from the device
+## Authors
 
-## Troubleshooting
+Kevin Guo
 
-For issues related to the Meta Wearables Device Access Toolkit, please refer to the [developer documentation](https://wearables.developer.meta.com/docs/develop/) or visit our [discussions forum](https://github.com/facebook/meta-wearables-dat-ios/discussions)
+## Acknowledgements
+* Claude Code
+* [A Swift Tour](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/guidedtour/#app-top)
+* [Wearables iOS Swift API Reference](https://wearables.developer.meta.com/docs/reference/ios_swift/dat/0.3)
+* [Meta Wearables Device Access Toolkit for iOS](https://github.com/facebook/meta-wearables-dat-ios/tree/main)
+* [Meta Wearables Developer Doc](https://wearables.developer.meta.com/docs/develop/) 
+* This project uses [CameraAccess](https://github.com/facebook/meta-wearables-dat-ios/tree/main/samples/CameraAccess) app as a scaffold.
 
 ## License
 
-This source code is licensed under the license found in the LICENSE file in the root directory of this source tree.
+This source code is licensed under the MIT license found in the LICENSE file in the root directory.

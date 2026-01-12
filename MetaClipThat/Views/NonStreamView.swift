@@ -10,7 +10,7 @@
 // NonStreamView.swift
 //
 // Default screen to show getting started tips after app connection
-// Initiates streaming
+// Initiates video capture
 //
 
 import MWDATCore
@@ -45,18 +45,14 @@ struct NonStreamView: View {
         Spacer()
 
         VStack(spacing: 12) {
-          Image(.cameraAccessIcon)
-            .resizable()
-            .renderingMode(.template)
-            .foregroundColor(.white)
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 120)
+          Text("🎬")
+            .font(.system(size: 80))
 
-          Text("Stream Your Glasses Camera")
-            .font(.system(size: 20, weight: .semibold))
+          Text("MetaClipThat")
+            .font(.system(size: 24, weight: .bold))
             .foregroundColor(.white)
 
-          Text("Tap the Start streaming button to stream video from your glasses or use the camera button to take a photo from your glasses.")
+          Text("Click record to save the last 30 seconds and keep recording.")
             .font(.system(size: 15))
             .multilineTextAlignment(.center)
             .foregroundColor(.white)
@@ -80,7 +76,7 @@ struct NonStreamView: View {
         .opacity(viewModel.hasActiveDevice ? 0 : 1)
 
         CustomButton(
-          title: "Start streaming",
+          title: "Start capturing every moment",
           style: .primary,
           isDisabled: !viewModel.hasActiveDevice
         ) {
@@ -91,84 +87,5 @@ struct NonStreamView: View {
       }
       .padding(.all, 24)
     }
-    .sheet(isPresented: $wearablesVM.showGettingStartedSheet) {
-      if #available(iOS 16.0, *) {
-        GettingStartedSheetView(height: $sheetHeight)
-          .presentationDetents([.height(sheetHeight)])
-          .presentationDragIndicator(.visible)
-      } else {
-        GettingStartedSheetView(height: $sheetHeight)
-      }
-    }
-  }
-}
-
-struct GettingStartedSheetView: View {
-  @Environment(\.dismiss) var dismiss
-  @Binding var height: CGFloat
-
-  var body: some View {
-    VStack(spacing: 24) {
-      Text("Getting started")
-        .font(.system(size: 18, weight: .semibold))
-        .foregroundColor(.primary)
-
-      VStack(spacing: 12) {
-        TipItemView(
-          resource: .videoIcon,
-          text: "First, Camera Access needs permission to use your glasses camera."
-        )
-        TipItemView(
-          resource: .tapIcon,
-          text: "Capture photos by tapping the camera button."
-        )
-        TipItemView(
-          resource: .smartGlassesIcon,
-          text: "The capture LED lets others know when you're capturing content or going live."
-        )
-      }
-      .padding(.bottom, 16)
-
-      CustomButton(
-        title: "Continue",
-        style: .primary,
-        isDisabled: false
-      ) {
-        dismiss()
-      }
-    }
-    .padding(.all, 24)
-    .background(
-      GeometryReader { geo -> Color in
-        DispatchQueue.main.async {
-          height = geo.size.height
-        }
-        return Color.clear
-      }
-    )
-  }
-}
-
-struct TipItemView: View {
-  let resource: ImageResource
-  let text: String
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Image(resource)
-        .resizable()
-        .renderingMode(.template)
-        .foregroundColor(.primary)
-        .aspectRatio(contentMode: .fit)
-        .frame(width: 24)
-        .padding(.leading, 4)
-        .padding(.top, 4)
-
-      Text(text)
-        .font(.system(size: 15))
-        .foregroundColor(.primary)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
