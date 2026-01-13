@@ -1,4 +1,5 @@
 # MetaClipThat
+<img width="1024" height="1024" alt="appicon" src="https://github.com/user-attachments/assets/62f4792b-0aaf-447c-9065-5d085d279913" />
 
 ## Description
 
