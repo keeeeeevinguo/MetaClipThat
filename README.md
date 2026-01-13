@@ -1,7 +1,5 @@
 # MetaClipThat
 
-![alt text](
-
 ## Description
 
 This is an iOS app for the Meta Raybans that continuously captures the last 30 seconds of video. When you tap record, it saves the past 30 seconds plus everything you record going forward into a single video file, so you never miss a moment.
